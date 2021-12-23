@@ -1,0 +1,21 @@
+library(aopdata)
+library(ggplot2)
+library(sf)
+library(akima)
+library(dplyr)
+library(sfheaders)
+library(data.table)
+library(magrittr)
+library(readr)
+library(patchwork)
+library(cowplot)
+library(geobr)
+library(ggsn)
+library(mapview)
+library(viridisLite)
+library(osmdata)
+
+
+options(scipen = 999999)
+
+mapviewOptions(platform = 'leafgl')
