@@ -60,7 +60,17 @@ df_brt <- read_rds('./data/transport/brt_sf.rds')
 df_brt <- subset(df_brt, CD_LINHA != 'X12')
 # mapview(b)
 
+tod_lines <- c('07-203-STA.CÂNDIDA-C.RASO',
+               '07-302-2-CENTENÁRIO-RUI BARBOSA (TARDE)',
+               '07-303-CENTENÁRIO-C.COMPRIDO',
+               '07-603-1-PINHEIRINHO-RUI BARBOSA',
+               '07-603-3-PINHEIRINHO (TAB.025.RED TAB.026.SOR. P3)',
+               '07-603-3-PINHEIRINHO (TAB.025.RED. TAB.026.SOR. P3)',
+               '07-C01-PINHAIS-RUI BARBOSA',
+               '07-X27-C.RASO-CABRAL')
 
+df_brt$type <- fifelse(df_brt$LAYER %in% tod_lines, 'TOD', 'BRT')
+table(df_brt$type)
 
 # maptile
 map_tile1 <- read_rds('./data/maptile/maptile_crop_gmaps_cur_2019.rds')
@@ -104,7 +114,6 @@ map_tile2 <- read_rds('./data/maptile/maptile_crop_mapbox_cur_2019.rds')
   df_bus2 <- subset(df_bus2, CATEGORIA != 'MADRUGUEIRO')
 
 # rbind transport network
-  df_brt$type <- 'BRT'
   df_brt_new$type <- 'Future BRT'
   df_bus2$type <- 'Buses'
   df_brt <- select(df_brt, type, geometry)
@@ -112,7 +121,7 @@ map_tile2 <- read_rds('./data/maptile/maptile_crop_mapbox_cur_2019.rds')
   df_bus2 <- select(df_bus2, type, geometry)
   
   pt <- rbind(df_brt, df_brt_new, df_bus2) 
-  pt$type <- factor(pt$type, levels = c('Buses', 'BRT', 'Future BRT'))
+  pt$type <- factor(pt$type, levels = c('Buses', 'BRT', 'TOD', 'Future BRT'))
   table(pt$type)
   
  
@@ -268,25 +277,27 @@ access_jobs_rich / access_jobs_poor
 
 
 
+cols <- c("TOD" = "red", "BRT" = "orange")
 
 #### fig.3 - Pop density -----------------------
 map_pop <- ggplot() +
-              geom_sf(data=muni, fill=NA, color='black') +
-              geom_sf(data=subset(df_land, P001>0), aes(fill=pop_density), color=NA, alpha=.9) +
-              geom_sf(data=subset(pt, type == 'BRT'), color='red', show.legend = FALSE,
-                      size=.5, alpha=.9, linetype = "dotted") +
-              scale_fill_viridis_c(option = 'viridis') +
-              labs(fill='Pop. density\nper Km2') +
-              theme_void() +
-              theme_legend_size3 +
-              ggsn::scalebar(data = muni,
-                             dist = 5, 
-                             dist_unit = "km", 
-                             st.dist = 0.03,
-                             transform = FALSE, 
-                             model = "WGS84", 
-                             st.size = 2.5, height=0.01,
-                             border.size = 0.3)
+  geom_sf(data=muni, fill=NA, color='black') +
+  geom_sf(data=subset(df_land, P001>0), aes(fill=pop_density), color=NA, alpha=.9) +
+  geom_sf(data=subset(pt, type %in% c('TOD','BRT')), show.legend = TRUE,
+          aes(color=type), size=.5, alpha=.9, linetype = "dotted") +
+  scale_colour_manual(values = cols) +
+  scale_fill_viridis_c(option = 'viridis') +
+  labs(fill='Pop. density\nper Km2', color='') +
+  theme_void() +
+  theme_legend_size3 +
+  ggsn::scalebar(data = muni,
+                 dist = 5, 
+                 dist_unit = "km", 
+                 st.dist = 0.03,
+                 transform = FALSE, 
+                 model = "WGS84", 
+                 st.size = 2.5, height=0.01,
+                 border.size = 0.3)
 
 
 box_pop <- ggplot(data= subset(df_land, P001>0) ) +
@@ -312,7 +323,7 @@ fig3 <- plot_grid(map_pop, box_pop,
 
 
 ggsave(fig3, filename = './figures/fig3_pop_density.png',
-       dpi = 300, width = 20, height = 10, units = 'cm')
+       dpi = 400, width = 20, height = 10, units = 'cm')
 
 
 
@@ -323,9 +334,10 @@ map_income <- ggplot() +
               geom_sf(data=muni, fill=NA, color='black') +
                geom_sf(data=subset(df_land, P001>0), aes(fill=as.factor(R003)), color=NA, alpha=.9) +
               # scale_fill_brewer(palette = 'RdBu') +
-              geom_sf(data=subset(pt, type == 'BRT'), color='red', show.legend = FALSE,
-                      size=.5, alpha=.9, linetype = "dotted") +
-              scale_fill_viridis_d(option = 'viridis') +
+  geom_sf(data=subset(pt, type %in% c('TOD','BRT')), show.legend = TRUE,
+          aes(color=type), size=.5, alpha=.9, linetype = "dotted") +
+  scale_colour_manual(values = cols) +
+  scale_fill_viridis_d(option = 'viridis') +
               labs(fill='Income\ndecile') +
               theme_void() +
               theme_legend_size3 +
@@ -361,7 +373,7 @@ fig4 <- plot_grid(map_income, box_income,
 
 
 ggsave(fig4, filename = './figures/fig4_income.png',
-       dpi = 300, width = 20, height = 10, units = 'cm')
+       dpi = 400, width = 20, height = 10, units = 'cm')
 
 
 
@@ -421,7 +433,7 @@ fig5 <- plot_grid(map_imobs, box_imobs,
 
 
 ggsave(fig5, filename = './figures/fig5_property_values.png',
-       dpi = 300, width = 20, height = 10, units = 'cm')
+       dpi = 400, width = 20, height = 10, units = 'cm')
 
 
 
@@ -433,10 +445,11 @@ ggsave(fig5, filename = './figures/fig5_property_values.png',
 
 
 #### Fig 6 Access to jobs-----------------------
+total_jobs <- sum(df_access$T001)
 
 f6a_map <- ggplot() +
             geom_sf(data=muni, fill=NA, color='black') +
-            geom_sf(data=subset(df_access, P001>0), aes(fill=CMATT60), color=NA, alpha=.8) +
+            geom_sf(data=subset(df_access, P001>0), aes(fill=CMATT60/total_jobs), color=NA, alpha=.8) +
             scale_fill_viridis_c(option = 'inferno', labels = scales::percent) +
             labs(fill='Access\nto jobs') +
             theme_void() +
@@ -456,7 +469,8 @@ f6a_map <- ggplot() +
 
 f6b_box <- ggplot() +
             geom_boxplot(data=subset(df_access, !is.na(R003)),
-                         aes(x = factor(R003), y=CMATT60, color=factor(R003)),
+                         aes(x = factor(R003), y=CMATT60/total_jobs, 
+                             color=factor(R003), weight=P001),
                          outlier.colour=rgb(.5,.5,.5, alpha=0.05)) +
             scale_color_viridis_d(option = 'cividis') +
             labs(x='Income decile', y="Proportion of jobs accessible", color='Income\ndecile') +
@@ -474,7 +488,7 @@ fig6 <- plot_grid(f6a_map, f6b_box,
 
 
 ggsave(fig6, filename = './figures/fig6_access_jobs.png',
-       dpi = 300, width = 16, height = 8, units = 'cm')
+       dpi = 400, width = 16, height = 8, units = 'cm')
 
 
 
@@ -487,10 +501,11 @@ ggsave(fig6, filename = './figures/fig6_access_jobs.png',
 
 
 #### Fig 7 Access to health-----------------------
+total_health <- sum(df_access$S001)
 
 f7a_map <- ggplot() +
             geom_sf(data=muni, fill=NA, color='black') +
-            geom_sf(data=subset(df_access, P001>0), aes(fill=CMAST60), color=NA, alpha=.8) +
+            geom_sf(data=subset(df_access, P001>0), aes(fill=CMAST60/total_health), color=NA, alpha=.8) +
             scale_fill_viridis_c(option = 'inferno', labels = scales::percent) +
             labs(fill='Access to\nhealthcare\nfacilities') +
             theme_void() +
@@ -507,7 +522,8 @@ f7a_map <- ggplot() +
 
 f7b_box <- ggplot() +
             geom_boxplot(data=subset(df_access, !is.na(R003)),
-                         aes(x = factor(R003), y=CMAST60, color=factor(R003)),
+                         aes(x = factor(R003), y=CMAST60/total_health, 
+                             color=factor(R003), weight=P001),
                          outlier.colour=rgb(.5,.5,.5, alpha=0.05)) +
             # scale_color_brewer(palette = 'RdBu') +
             scale_color_viridis_d(option = 'cividis') +
@@ -528,4 +544,4 @@ fig7 <- plot_grid(f7a_map, f7b_box,
 
 
 ggsave(fig7, filename = './figures/fig7_access_health.png',
-       dpi = 300, width = 16, height = 8, units = 'cm')
+       dpi = 400, width = 16, height = 8, units = 'cm')
